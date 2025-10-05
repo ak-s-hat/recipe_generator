@@ -4,6 +4,9 @@ const genaiService = require('../services/genaiService');
 const { ensureAuth } = require('../middleware/auth');
 const Recipe = require('../models/Recipe');
 const Chat = require('../models/Chat');
+const axios = require('axios'); // Add axios for HTTP requests
+
+const FASTAPI_BASE_URL = 'http://localhost:8000'; // Update with your FastAPI URL
 
 // Apply authentication middleware to all routes
 router.use(ensureAuth);
@@ -11,109 +14,11 @@ router.use(ensureAuth);
 // Main recipe generation endpoint
 router.post('/generate', async (req, res) => {
   try {
-    const {
-      ingredients,
-      allergies,
-      budget,
-      leftovers,
-      preferences,
-      requestType = 'recipe'
-    } = req.body;
-
-    // Validate required inputs
-    if (!ingredients || ingredients.trim() === '') {
-      return res.status(400).json({
-        error: 'Ingredients are required',
-        message: 'Please provide at least one ingredient'
-      });
-    }
-
-    // Prepare data for prompt generation
-    const promptData = {
-      ingredients,
-      allergies,
-      budget,
-      leftovers,
-      preferences
-    };
-
-    // Generate the appropriate prompt based on request type
-    const prompt = genaiService.formatPrompt(requestType, promptData);
-
-    // Call GenAI service
-    const response = await genaiService.generateRecipe(prompt, {
-      maxTokens: 2500,
-      temperature: 0.7
-    });
-
-    // Try to parse response as JSON, fallback to plain text
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(response);
-    } catch (e) {
-      // If not valid JSON, structure the plain text response
-      parsedResponse = {
-        recipe: {
-          name: 'Generated Recipe',
-          content: response,
-          ingredients: [],
-          instructions: [],
-          metadata: {
-            prepTime: 'Not specified',
-            cookTime: 'Not specified',
-            servings: 'Not specified'
-          }
-        },
-        raw: response
-      };
-    }
-
-    // Save recipe to database
-    const recipeData = {
-      user: req.user.id,
-      name: parsedResponse.recipe?.name || 'Generated Recipe',
-      ingredients: parsedResponse.recipe?.ingredients || [],
-      instructions: parsedResponse.recipe?.instructions || [],
-      allergies: allergies || '',
-      budget: budget || '',
-      leftovers: leftovers || '',
-      preferences: preferences || '',
-      metadata: parsedResponse.recipe?.metadata || {}
-    };
-
-    const recipe = new Recipe(recipeData);
-    await recipe.save();
-
-    // Save chat to database
-    const chat = new Chat({
-      user: req.user.id,
-      message: `Generate ${requestType} with ingredients: ${ingredients}`,
-      response: response
-    });
-    await chat.save();
-
-    // Return structured response
-    res.json({
-      success: true,
-      data: parsedResponse,
-      recipeId: recipe._id,
-      requestInfo: {
-        ingredients,
-        allergies,
-        budget,
-        leftovers,
-        requestType,
-        timestamp: new Date().toISOString()
-      }
-    });
-
+    const response = await axios.post(`${FASTAPI_BASE_URL}/generate-recipe`, req.body);
+    res.status(response.status).json(response.data);
   } catch (error) {
-    console.error('Recipe generation error:', error);
-    res.status(500).json({
-      error: 'Recipe Generation Failed',
-      message: error.message,
-      timestamp: new Date().toISOString()
-    });
+    console.error('Error forwarding to FastAPI:', error.message);
+    res.status(500).json({ message: 'Failed to generate recipe', error: error.message });
   }
 });
 

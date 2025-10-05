@@ -4,88 +4,19 @@ const axios = require('axios');
 const { ensureAuth } = require('../middleware/auth');
 const Chat = require('../models/Chat');
 
+const FASTAPI_BASE_URL = 'http://localhost:8000'; // Update with your FastAPI URL
+
 // Apply authentication middleware to all routes
 router.use(ensureAuth);
 
-// Agent orchestration endpoint - connects to n8n workflow
+// Agent orchestration endpoint - connects to FastAPI backend
 router.post('/orchestrate', async (req, res) => {
   try {
-    const {
-      ingredients,
-      allergies,
-      budget,
-      leftovers,
-      preferences
-    } = req.body;
-
-    // Prepare data for n8n workflow
-    const workflowData = {
-      userInput: {
-        ingredients,
-        allergies,
-        budget,
-        leftovers,
-        preferences
-      },
-      timestamp: new Date().toISOString(),
-      requestId: generateRequestId()
-    };
-
-    // Call n8n webhook (when Docker/n8n is set up)
-    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
-    
-    if (n8nWebhookUrl) {
-      try {
-        const n8nResponse = await axios.post(n8nWebhookUrl, workflowData, {
-          timeout: 30000,
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-
-        // Save chat to database
-        const chat = new Chat({
-          user: req.user.id,
-          message: `Orchestrate agents with ingredients: ${ingredients}`,
-          response: JSON.stringify(n8nResponse.data)
-        });
-        await chat.save();
-
-        return res.json({
-          success: true,
-          data: n8nResponse.data,
-          source: 'n8n_workflow',
-          requestId: workflowData.requestId
-        });
-      } catch (n8nError) {
-        console.warn('n8n workflow unavailable, falling back to direct agent calls:', n8nError.message);
-      }
-    }
-
-    // Fallback: Direct agent orchestration
-    const agentResults = await orchestrateAgentsDirectly(workflowData);
-
-    // Save chat to database
-    const chat = new Chat({
-      user: req.user.id,
-      message: `Orchestrate agents with ingredients: ${ingredients}`,
-      response: JSON.stringify(agentResults)
-    });
-    await chat.save();
-
-    res.json({
-      success: true,
-      data: agentResults,
-      source: 'direct_orchestration',
-      requestId: workflowData.requestId
-    });
-
+    const response = await axios.post(`${FASTAPI_BASE_URL}/orchestrate-agents`, req.body);
+    res.status(response.status).json(response.data);
   } catch (error) {
-    console.error('Agent orchestration error:', error);
-    res.status(500).json({
-      error: 'Agent Orchestration Failed',
-      message: error.message
-    });
+    console.error('Error forwarding to FastAPI:', error.message);
+    res.status(500).json({ message: 'Failed to orchestrate agents', error: error.message });
   }
 });
 

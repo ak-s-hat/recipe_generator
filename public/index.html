@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚀 Agentic Smart Recipe App</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <h1 class="logo">
+                <i class="fas fa-robot"></i>
+                Agentic Recipe Assistant
+            </h1>
+            <div class="user-menu" id="userMenu" style="display: none;">
+                <a href="/dashboard" class="btn btn-secondary">Dashboard</a>
+                <span id="userName">User</span>
+                <a href="/auth/logout" class="btn btn-secondary">Logout</a>
+            </div>
+            <div class="auth-menu" id="authMenu">
+                <a href="/auth/google" class="btn btn-primary">
+                    <i class="fab fa-google"></i> Sign in with Google
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <!-- Login Prompt for Guests -->
+            <section class="login-prompt" id="loginPrompt" style="display: none;">
+                <div class="card">
+                    <h2><i class="fas fa-lock"></i> Please Sign In</h2>
+                    <p>To generate recipes and save your history, please sign in with your Google account.</p>
+                    <a href="/auth/google" class="btn btn-primary">
+                        <i class="fab fa-google"></i> Sign in with Google
+                    </a>
+                </div>
+            </section>
+
+            <!-- Input Form Section -->
+            <section class="input-section" id="inputSection" style="display: none;">
+                <div class="card">
+                    <h2><i class="fas fa-utensils"></i> Recipe Generator</h2>
+                    <form id="recipeForm" class="recipe-form">
+                        <!-- Ingredients Input -->
+                        <div class="form-group">
+                            <label for="ingredients">
+                                <i class="fas fa-carrot"></i>
+                                Available Ingredients *
+                            </label>
+                            <textarea 
+                                id="ingredients" 
+                                name="ingredients" 
+                                placeholder="e.g., chicken breast, broccoli, rice, garlic, olive oil..."
+                                required
+                            ></textarea>
+                        </div>
+
+                        <!-- Allergies Input -->
+                        <div class="form-group">
+                            <label for="allergies">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Allergies & Dietary Restrictions
+                            </label>
+                            <input 
+                                type="text" 
+                                id="allergies" 
+                                name="allergies" 
+                                placeholder="e.g., nuts, dairy, gluten-free, vegetarian..."
+                            >
+                        </div>
+
+                        <!-- Budget Input -->
+                        <div class="form-group">
+                            <label for="budget">
+                                <i class="fas fa-dollar-sign"></i>
+                                Budget Constraint
+                            </label>
+                            <input 
+                                type="text" 
+                                id="budget" 
+                                name="budget" 
+                                placeholder="e.g., $20, ₹500, budget-friendly..."
+                            >
+                        </div>
+
+                        <!-- Leftovers Input -->
+                        <div class="form-group">
+                            <label for="leftovers">
+                                <i class="fas fa-recycle"></i>
+                                Available Leftovers
+                            </label>
+                            <input 
+                                type="text" 
+                                id="leftovers" 
+                                name="leftovers" 
+                                placeholder="e.g., leftover rice, grilled chicken, vegetables..."
+                            >
+                        </div>
+
+                        <!-- Preferences Input -->
+                        <div class="form-group">
+                            <label for="preferences">
+                                <i class="fas fa-heart"></i>
+                                Cooking Preferences
+                            </label>
+                            <input 
+                                type="text" 
+                                id="preferences" 
+                                name="preferences" 
+                                placeholder="e.g., quick meals, spicy food, healthy options..."
+                            >
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="button-group">
+                            <button type="submit" class="btn btn-primary" data-action="recipe">
+                                <i class="fas fa-magic"></i>
+                                Generate Recipe
+                            </button>
+                            <button type="button" class="btn btn-secondary" data-action="mealPlan">
+                                <i class="fas fa-calendar-week"></i>
+                                7-Day Meal Plan
+                            </button>
+                            <button type="button" class="btn btn-accent" data-action="orchestrate">
+                                <i class="fas fa-robot"></i>
+                                Run All Agents
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <div class="results-container">
+                    <!-- Loading Spinner -->
+                    <div id="loadingSpinner" class="loading-spinner" style="display: none;">
+                        <div class="spinner"></div>
+                        <p>AI Agents are cooking up something amazing...</p>
+                    </div>
+
+                    <!-- Recipe Card -->
+                    <div id="recipeCard" class="card result-card" style="display: none;">
+                        <h3><i class="fas fa-utensils"></i> Generated Recipe</h3>
+                        <div id="recipeContent"></div>
+                        <div class="recipe-actions">
+                            <button id="saveRecipe" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Recipe
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Meal Plan Card -->
+                    <div id="mealPlanCard" class="card result-card" style="display: none;">
+                        <h3><i class="fas fa-calendar-week"></i> 7-Day Meal Plan</h3>
+                        <div id="mealPlanContent"></div>
+                    </div>
+
+                    <!-- Allergy Warnings Card -->
+                    <div id="allergyCard" class="card result-card warning-card" style="display: none;">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Allergy Warnings</h3>
+                        <div id="allergyContent"></div>
+                    </div>
+
+                    <!-- Budget Optimization Card -->
+                    <div id="budgetCard" class="card result-card" style="display: none;">
+                        <h3><i class="fas fa-dollar-sign"></i> Budget Optimization</h3>
+                        <div id="budgetContent"></div>
+                    </div>
+
+                    <!-- Leftover Suggestions Card -->
+                    <div id="leftoverCard" class="card result-card" style="display: none;">
+                        <h3><i class="fas fa-recycle"></i> Leftover Recipes</h3>
+                        <div id="leftoverContent"></div>
+                    </div>
+
+                    <!-- Grocery List Card -->
+                    <div id="groceryCard" class="card result-card" style="display: none;">
+                        <h3><i class="fas fa-shopping-cart"></i> Shopping List</h3>
+                        <div id="groceryContent"></div>
+                    </div>
+
+                    <!-- Error Card -->
+                    <div id="errorCard" class="card result-card error-card" style="display: none;">
+                        <h3><i class="fas fa-exclamation-circle"></i> Error</h3>
+                        <div id="errorContent"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Agent Status Section -->
+            <section class="agent-status-section" id="agentStatusSection" style="display: none;">
+                <div class="card">
+                    <h3><i class="fas fa-cogs"></i> Agent Execution Status</h3>
+                    <div class="agent-grid">
+                        <div class="agent-item" data-agent="meal-planner">
+                            <i class="fas fa-calendar-week"></i>
+                            <span>Meal Planner</span>
+                            <div class="status-indicator" id="status-meal-planner">⏳</div>
+                        </div>
+                        <div class="agent-item" data-agent="allergy-checker">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Allergy Checker</span>
+                            <div class="status-indicator" id="status-allergy-checker">⏳</div>
+                        </div>
+                        <div class="agent-item" data-agent="budget-optimizer">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Budget Optimizer</span>
+                            <div class="status-indicator" id="status-budget-optimizer">⏳</div>
+                        </div>
+                        <div class="agent-item" data-agent="leftover-optimizer">
+                            <i class="fas fa-leaf"></i>
+                            <span>Leftover Optimizer</span>
+                            <div class="status-indicator" id="status-leftover-optimizer">⏳</div>
+                        </div>
+                        <div class="agent-item" data-agent="grocery-suggester">
+                            <i class="fas fa-store"></i>
+                            <span>Grocery Suggester</span>
+                            <div class="status-indicator" id="status-grocery-suggester">⏳</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Agentic Recipe Assistant | Powered by GenAI & Multi-Agent Architecture</p>
+        </div>
+    </footer>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

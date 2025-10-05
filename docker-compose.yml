@@ -1,0 +1,87 @@
+version: '3.8'
+
+services:
+  # Main Recipe App
+  recipe-app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook/recipe-agents
+      - MONGO_URI=mongodb://mongodb:27017/recipeapp
+    depends_on:
+      - n8n
+      - mongodb
+    volumes:
+      - ./.env:/app/.env:ro
+    networks:
+      - recipe-network
+    restart: unless-stopped
+
+  # n8n Workflow Automation
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=false
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-workflows:/tmp/workflows
+    networks:
+      - recipe-network
+    restart: unless-stopped
+    command: n8n start
+
+  # Redis for caching (optional)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - recipe-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # PostgreSQL for n8n persistence (optional)
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=n8n
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=n8n_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - recipe-network
+    restart: unless-stopped
+
+  # MongoDB for user data
+  mongodb:
+    image: mongo:6-jammy
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - recipe-network
+    restart: unless-stopped
+
+volumes:
+  n8n_data:
+  redis_data:
+  postgres_data:
+  mongodb_data:
+
+networks:
+  recipe-network:
+    driver: bridge
